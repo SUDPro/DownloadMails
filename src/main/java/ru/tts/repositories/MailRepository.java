@@ -6,6 +6,4 @@ import ru.tts.entities.Mail;
 
 @Repository
 public interface MailRepository extends JpaRepository<Mail, Long> {
-
-
 }

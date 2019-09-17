@@ -1,9 +1,10 @@
 package ru.tts.authenticator;
 
+import javax.mail.Authenticator;
 import javax.mail.PasswordAuthentication;
 
 
-public class EmailAuthenticator extends javax.mail.Authenticator {
+public class EmailAuthenticator extends Authenticator {
     private String login;
     private String password;
 

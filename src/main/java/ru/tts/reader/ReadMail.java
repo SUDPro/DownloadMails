@@ -12,17 +12,23 @@ import javax.mail.*;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 
 @Service
 public class ReadMail {
-     String IMAP_AUTH_EMAIL = "";
-//
-     String IMAP_AUTH_PWD = "";
-     String IMAP_Server = "";
-     String IMAP_Port = "993";
+
+    private static final String IMAP_AUTH_EMAIL2 = "";
+    private static final String IMAP_AUTH_EMAIL1 = "";
+    private static final String IMAP_AUTH_EMAIL = "";
+    private static final String IMAP_AUTH_PWD = "";
+    private static final String IMAP_Server = "";
+    private static final String IMAP_Port = "993";
+
+    List<String> emails = new ArrayList<String>(Arrays.asList(IMAP_AUTH_EMAIL, IMAP_AUTH_EMAIL1, IMAP_AUTH_EMAIL2));
 
     @Autowired
     MailRepository repository;
@@ -35,6 +41,14 @@ public class ReadMail {
         properties.put("mail.imap.ssl.enable", "true");
         properties.put("mail.imap.port", IMAP_Port);
 
+        for (String email :
+                emails) {
+            readingAndSave(properties);
+        }
+
+    }
+
+    public void readingAndSave(Properties properties) {
         Authenticator auth = new EmailAuthenticator(IMAP_AUTH_EMAIL,
                 IMAP_AUTH_PWD);
         Session session = Session.getDefaultInstance(properties, auth);
@@ -48,16 +62,12 @@ public class ReadMail {
             // Папка входящих сообщений
             Folder inbox = store.getFolder("INBOX");
 
-            // Открываем папку в режиме только для чтения
+            // Открываем папку в режиме чтения и изменения
             inbox.open(Folder.READ_WRITE);
-            BufferedWriter writer = new BufferedWriter(new FileWriter(""));
-            writer.write("Количество сообщений : " +
-                    String.valueOf(inbox.getMessageCount()));
-            if (inbox.getMessageCount() == 0){
+            if (inbox.getMessageCount() == 0) {
                 return;
             }
-            for (int i = 1; i < inbox.getMessageCount(); i++){
-//                writer.write(inbox.getMessage(i).getSubject());
+            for (int i = 1; i < inbox.getMessageCount(); i++) {
                 System.out.println(inbox.getMessage(i).getSubject());
                 Mail mail = Mail.builder()
                         .receiver(inbox.getMessage(i).getSubject())
@@ -70,18 +80,17 @@ public class ReadMail {
             // Последнее сообщение; первое сообщение под номером 1
             Message message = inbox.getMessage(inbox.getMessageCount());
             Multipart mp = (Multipart) message.getContent();
+
             // Вывод содержимого в консоль
-//            for (int i = 0; i < mp.getCount(); i++) {
-//                BodyPart bp = mp.getBodyPart(i);
-//                if (bp.getFileName() == null)
-//                    writer.write("    " + i + ". сообщение : '" +
-//                            bp.getContent() + "'");
-//                else
-//                    writer.write("    " + i + ". файл : '" +
-//                            bp.getFileName() + "'");
-//            }
-            writer.flush();
-            writer.close();
+            for (int i = 0; i < mp.getCount(); i++) {
+                BodyPart bp = mp.getBodyPart(i);
+                if (bp.getFileName() == null)
+                    System.out.println("    " + i + ". сообщение : '" +
+                            bp.getContent() + "'");
+                else
+                    System.out.println("    " + i + ". файл : '" +
+                            bp.getFileName() + "'");
+            }
         } catch (NoSuchProviderException e) {
             System.err.println(e.getMessage());
         } catch (MessagingException e) {
