@@ -1,7 +1,11 @@
 package ru.tts.reader;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 import ru.tts.authenticator.EmailAuthenticator;
 import ru.tts.entities.Mail;
+import ru.tts.repositories.MailRepository;
 
 
 import javax.mail.*;
@@ -10,16 +14,21 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.logging.Logger;
 
-
+@Service
 public class ReadMail {
-    String IMAP_AUTH_EMAIL = "";
-    String IMAP_AUTH_PWD = "";
-    String IMAP_Server = "";
-    String IMAP_Port = "993";
+     String IMAP_AUTH_EMAIL = "";
+//
+     String IMAP_AUTH_PWD = "";
+     String IMAP_Server = "";
+     String IMAP_Port = "993";
 
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public ReadMail() {
+    @Autowired
+    MailRepository repository;
+
+    @Scheduled(cron = "0 0/5 * * * ?")
+    public void readMailFromEmails() {
         Properties properties = new Properties();
         properties.put("mail.debug", "false");
         properties.put("mail.store.protocol", "imaps");
@@ -40,7 +49,7 @@ public class ReadMail {
             Folder inbox = store.getFolder("INBOX");
 
             // Открываем папку в режиме только для чтения
-            inbox.open(Folder.READ_ONLY);
+            inbox.open(Folder.READ_WRITE);
             BufferedWriter writer = new BufferedWriter(new FileWriter(""));
             writer.write("Количество сообщений : " +
                     String.valueOf(inbox.getMessageCount()));

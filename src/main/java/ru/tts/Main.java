@@ -1,11 +1,14 @@
 package ru.tts;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import ru.tts.reader.ReadMail;
 
+@SpringBootApplication
+@EnableScheduling
 public class Main {
 
     public static void main(String[] args) {
-
-        new ReadMail();
-        System.exit(0);
+        SpringApplication.run(Main.class, args);
     }
 }
