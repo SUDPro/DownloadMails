@@ -68,28 +68,24 @@ public class ReadMail {
                 return;
             }
             for (int i = 1; i < inbox.getMessageCount(); i++) {
-                System.out.println(inbox.getMessage(i).getSubject());
+                Message message = inbox.getMessage(i);
                 Mail mail = Mail.builder()
-                        .receiver(inbox.getMessage(i).getSubject())
-                        .sender(Arrays.toString(inbox.getMessage(i).getFrom()))
-                        .subject(inbox.getMessage(i).getSubject())
-                        .send_date(inbox.getMessage(i).getSentDate())
+                        .receiver(message.getSubject())
+                        .sender(Arrays.toString(message.getFrom()))
+                        .subject(message.getSubject())
+                        .send_date(message.getSentDate())
                         .build();
                 repository.save(mail);
-            }
-            // Последнее сообщение; первое сообщение под номером 1
-            Message message = inbox.getMessage(inbox.getMessageCount());
-            Multipart mp = (Multipart) message.getContent();
-
-            // Вывод содержимого в консоль
-            for (int i = 0; i < mp.getCount(); i++) {
-                BodyPart bp = mp.getBodyPart(i);
-                if (bp.getFileName() == null)
-                    System.out.println("    " + i + ". сообщение : '" +
-                            bp.getContent() + "'");
-                else
-                    System.out.println("    " + i + ". файл : '" +
-                            bp.getFileName() + "'");
+                Multipart mp = (Multipart) message.getContent();
+                for (int j = 0; i < mp.getCount(); i++) {
+                    BodyPart bp = mp.getBodyPart(i);
+                    if (bp.getFileName() == null)
+                        System.out.println("    " + i + ". сообщение : '" +
+                                bp.getContent() + "'");
+                    else
+                        System.out.println("    " + i + ". файл : '" +
+                                bp.getFileName() + "'");
+                }
             }
         } catch (NoSuchProviderException e) {
             System.err.println(e.getMessage());
@@ -99,6 +95,5 @@ public class ReadMail {
             e.printStackTrace();
             System.err.println(e.getMessage());
         }
-
     }
 }
