@@ -1,36 +1,38 @@
 package ru.tts.reader;
 
+import com.mysql.cj.util.Base64Decoder;
+import org.jsoup.Connection;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import ru.tts.authenticator.EmailAuthenticator;
+
 import ru.tts.entities.Mail;
 import ru.tts.repositories.MailRepository;
-
 
 import javax.mail.*;
 import javax.mail.internet.ContentType;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
-import java.util.logging.Logger;
+
 
 @Service
 public class ReadMail {
 
+
     private static final String IMAP_AUTH_EMAIL2 = "";
     private static final String IMAP_AUTH_EMAIL1 = "";
     private static final String IMAP_AUTH_EMAIL = "";
+    private static final String IMAP_AUTH_EMAIL4 = "";
     private static final String IMAP_AUTH_PWD = "";
     private static final String IMAP_Server = "";
     private static final String IMAP_Port = "993";
-    private static final String saveDirectory = "";
+    private static final String saveDirectory = "C:/Mails/";
 
-    List<String> emails = new ArrayList<String>(Arrays.asList(IMAP_AUTH_EMAIL, IMAP_AUTH_EMAIL1, IMAP_AUTH_EMAIL2));
+    List<String> emails = new ArrayList<String>(Arrays.asList(
+            IMAP_AUTH_EMAIL, IMAP_AUTH_EMAIL1, IMAP_AUTH_EMAIL2, IMAP_AUTH_EMAIL4));
 
     @Autowired
     MailRepository repository;
@@ -66,16 +68,35 @@ public class ReadMail {
             Message[] arrayMessages = folderInbox.getMessages();
             for (Message message :
                     arrayMessages) {
-                String from = ((message.getFrom())[0]).toString();;
+                String from = ((message.getFrom())[0]).toString();
+                List<String> attachmentNames = new ArrayList<>();
                 String subject = message.getSubject();
                 String toList = parseAddresses(message.getRecipients(Message.RecipientType.TO));
                 Date sentDate = message.getSentDate();
                 String contentType = message.getContentType();
                 String messageContent = "";
-                if (message.isMimeType("text/html")){
+                if (message.isMimeType("text/html")) {
                     messageContent = org.jsoup.Jsoup.parse(message.getContent().toString()).text();
                 } else {
                     messageContent = getTextFromMessage(message);
+                }
+
+                String contentType1 = message.getContentType();
+
+                if (contentType1.contains("multipart")) {
+                    Multipart multiPart = (Multipart) message.getContent();
+
+                    for (int i = 0; i < multiPart.getCount(); i++) {
+                        MimeBodyPart part = (MimeBodyPart) multiPart.getBodyPart(i);
+                        if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
+//                            =?koi8-r?B?8MnT2M3PIMTM0SD09PMuUERG?=
+//                            =?koi8-r?B?8MnT2M3PIMTM0SD09PMuUERG?=
+//                            =?utf-8?B?0KjQsNCx0LvQvtC90Ysg0L/QuNGB0LXQvCDQnNCaLnhsc3g=?=
+                            String str = part.getFileName();
+                            System.out.println(str);
+
+                        }
+                    }
                 }
 
                 repository.save(Mail.builder()
@@ -86,12 +107,13 @@ public class ReadMail {
                         .messageContent(messageContent)
                         .contentType(contentType)
                         .build());
-                System.out.println("\t From: " + from);
-                System.out.println("\t Content-Type: " + contentType);
-                System.out.println("\t To: " + toList);
-                System.out.println("\t Subject: " + subject);
-                System.out.println("\t Sent Date: " + sentDate);
-                System.out.println("\t Message: " + messageContent);
+//                System.out.println("\t From: " + from);
+//                System.out.println("\t Content-Type: " + contentType);
+//                System.out.println("\t To: " + toList);
+//                System.out.println("\t Subject: " + subject);
+//                System.out.println("\t Sent Date: " + sentDate);
+//                System.out.println("\t Message: " + messageContent);
+//                System.out.println("\t Attachment" + attachmentNames.toArray().toString());
 
             }
             // disconnect
@@ -127,7 +149,7 @@ public class ReadMail {
         int count = mimeMultipart.getCount();
         if (count == 0)
             throw new MessagingException("Multipart with no body parts not supported.");
-        boolean multipartAlt = new ContentType(mimeMultipart.getContentType()).match("multipart/alternative");
+        boolean multipartAlt = new ContentType(mimeMultipart.getContentType()).match("multipart");
         if (multipartAlt)
             // alternatives appear in an order of increasing
             // faithfulness to the original content. Customize as req'd.

@@ -38,4 +38,6 @@ public class Mail {
 
     @Type(type = "text")
     String contentType;
+
+    String attachments;
 }
