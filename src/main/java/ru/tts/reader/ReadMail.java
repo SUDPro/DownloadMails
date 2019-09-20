@@ -15,6 +15,7 @@ import javax.mail.internet.ContentType;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 
@@ -90,10 +91,13 @@ public class ReadMail {
                         MimeBodyPart part = (MimeBodyPart) multiPart.getBodyPart(i);
                         if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
 //                            =?koi8-r?B?8MnT2M3PIMTM0SD09PMuUERG?=
-//                            =?koi8-r?B?8MnT2M3PIMTM0SD09PMuUERG?=
 //                            =?utf-8?B?0KjQsNCx0LvQvtC90Ysg0L/QuNGB0LXQvCDQnNCaLnhsc3g=?=
-                            String str = part.getFileName();
-                            System.out.println(str);
+//                            8MnT2M3PIMTM0SD09PMuUERG
+
+                            String str = "8MnT2M3PIMTM0SD09PMuUERG";
+
+                            System.out.println("Decoding " + getDecodedString(part.getFileName()));
+
 
                         }
                     }
@@ -141,6 +145,17 @@ public class ReadMail {
             result = getTextFromMimeMultipart(mimeMultipart);
         }
         return result;
+    }
+
+    private String getDecodedString(String decodedFilename) throws UnsupportedEncodingException {
+//        =?utf-8?B?0L/RgNC40LrQsNC3INC00YHQvyA2MDQg0LogMjgxMjIwMTcg0L/RgNC40Lsg?= =?utf-8?Q?2.pdf?=
+//         =?utf-8?B?0L/RgNC40LrQsNC3INC00YHQvyAwMDQg0L/RgCAyNTAxMjAxOCDQvtCxINGD?= =?utf-8?B?0YHRgtCw0L3QvtCy0LvQtdC90LjQuCDQu9C40LzQuNGC0LAg0LLRgNC10Lw=?= =?utf-8?B?0LXQvdC4INC90LDRhdC+0LbQtNC10L3QuNGPINCw0LLRgtC+0LzQvtCx0Lg=?= =?utf-8?B?0LvRjyDRgdC+0YLRgNGD0LTQvdC40LrQsCDQvdCwINC/0LDRgNC60L7QstC6?= =?utf-8?B?0LUg0JDQpiDQuCDQvNC10YAg0L3QsNC60LDQt9Cw0L3QuNGPINC30LAg0LU=?= =?utf-8?B?0LPQviDQvdCw0YDRg9GI0LXQvdC40LUucGRm?=
+//         =?koi8-r?B?8MnT2M3PIMTM0SD09PMuUERG?=
+        String mainPart = decodedFilename.split("\\?")[3];
+        System.out.println("ENCODED STRING " + decodedFilename);
+        System.out.println("MAIN PART " + mainPart);
+        String newString = new String(Base64.getDecoder().decode(mainPart), StandardCharsets.UTF_8);
+        return newString;
     }
 
     private String getTextFromMimeMultipart(
