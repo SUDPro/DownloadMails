@@ -63,7 +63,7 @@ public class ReadMail {
             Folder folderInbox = store.getFolder("INBOX");
             folderInbox.open(Folder.READ_WRITE);
             UIDFolder uf = (UIDFolder) folderInbox;
-
+            ArrayList<String> filenames = new ArrayList<>();
             // fetches new messages from server
             Message[] arrayMessages = folderInbox.getMessages();
             for (Message message :
@@ -92,6 +92,7 @@ public class ReadMail {
                             f.getParentFile().mkdirs();
                             f.createNewFile();
                             part.saveFile(f);
+                            filenames.add(decodeString(part.getFileName()));
                         }
                     }
                 }
@@ -102,9 +103,11 @@ public class ReadMail {
                         .send_date(sentDate)
                         .receiver(toList)
                         .messageContent(messageContent)
+                        .files(String.valueOf(filenames))
                         .build());
+                filenames.clear();
+                message.setFlag(Flags.Flag.DELETED, true);
             }
-
             //disconnect
             folderInbox.close(false);
             store.close();

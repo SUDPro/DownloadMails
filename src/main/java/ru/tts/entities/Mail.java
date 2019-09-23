@@ -38,4 +38,7 @@ public class Mail {
     @Type(type="text")
     String messageContent;
 
+    @Type(type = "text")
+    String files;
+
 }
