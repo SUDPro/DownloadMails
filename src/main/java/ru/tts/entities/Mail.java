@@ -21,6 +21,8 @@ public class Mail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
+    Long UID;
+
     @Type(type="text")
     String subject;
 
@@ -30,14 +32,10 @@ public class Mail {
     @Type(type="text")
     String sender;
 
-    @Temporal(TemporalType.DATE)
+    @Temporal(TemporalType.TIMESTAMP)
     Date send_date;
 
     @Type(type="text")
     String messageContent;
 
-    @Type(type = "text")
-    String contentType;
-
-    String attachments;
 }

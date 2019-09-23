@@ -30,14 +30,16 @@ public class ReadMail {
 
     @Value("${save.directory}")
     private String saveDirectory;
-    List<String> emails = new ArrayList<String>(Arrays.asList(
+
+    private ArrayList<String> emails = new ArrayList<>(Arrays.asList(
             IMAP_AUTH_EMAIL, IMAP_AUTH_EMAIL1, IMAP_AUTH_EMAIL2, IMAP_AUTH_EMAIL3));
 
     @Autowired
     MailRepository repository;
 
-    @Scheduled(cron = "0 0/1 * * * ?")
+    @Scheduled(cron = "0 0/5 * * * ?")
     public void readMailFromEmails() {
+        System.out.println(emails.toString());
         for (String email :
                 emails) {
             downloadEmails(email);
@@ -59,17 +61,18 @@ public class ReadMail {
 
             // opens the inbox folder
             Folder folderInbox = store.getFolder("INBOX");
-            folderInbox.open(Folder.READ_ONLY);
+            folderInbox.open(Folder.READ_WRITE);
+            UIDFolder uf = (UIDFolder) folderInbox;
 
             // fetches new messages from server
             Message[] arrayMessages = folderInbox.getMessages();
             for (Message message :
                     arrayMessages) {
+                Long mesUID = uf.getUID(message);
                 String from = ((message.getFrom())[0]).toString();
                 String subject = message.getSubject();
                 String toList = parseAddresses(message.getRecipients(Message.RecipientType.TO));
                 Date sentDate = message.getSentDate();
-                String contentType = message.getContentType();
                 String messageContent = "";
                 if (message.isMimeType("text/html")) {
                     messageContent = org.jsoup.Jsoup.parse(message.getContent().toString()).text();
@@ -81,26 +84,29 @@ public class ReadMail {
 
                 if (contentType1.contains("multipart")) {
                     Multipart multiPart = (Multipart) message.getContent();
-
                     for (int i = 0; i < multiPart.getCount(); i++) {
                         MimeBodyPart part = (MimeBodyPart) multiPart.getBodyPart(i);
                         if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
-                            //TODO save files
                             System.out.println("Decoding " + decodeString(part.getFileName()));
+                            String path = saveDirectory + mesUID + "/" + decodeString(part.getFileName());
+                            File f = new File(path);
+                            f.getParentFile().mkdirs();
+                            f.createNewFile();
+                            part.saveFile(f);
                         }
                     }
                 }
-
                 repository.save(Mail.builder()
+                        .UID(mesUID)
                         .sender(from)
                         .subject(subject)
                         .send_date(sentDate)
                         .receiver(toList)
                         .messageContent(messageContent)
-                        .contentType(contentType)
                         .build());
             }
-            // disconnect
+
+            //disconnect
             folderInbox.close(false);
             store.close();
         } catch (NoSuchProviderException ex) {
@@ -109,10 +115,8 @@ public class ReadMail {
         } catch (MessagingException ex) {
             System.out.println("Could not connect to the message store");
             ex.printStackTrace();
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -127,15 +131,19 @@ public class ReadMail {
         return messageText;
     }
 
-    public static String decodeString(String encodedString) throws UnsupportedEncodingException {
+    private static String decodeString(String encodedString) throws UnsupportedEncodingException {
         String result = "";
         String[] strings = encodedString.split("\\?");
         String type = strings[1];
-        for (int i = 0; i < strings.length; i++) {
-            if ((strings[i]).contains(type)) {
-                String prom = new String(Base64.getMimeDecoder().decode(strings[i + 2]), type.toUpperCase());
-                result += prom;
+        try {
+            for (int i = 0; i < strings.length; i++) {
+                if ((strings[i]).contains(type)) {
+                    String prom = new String(Base64.getMimeDecoder().decode(strings[i + 2]), type.toUpperCase());
+                    result += prom;
+                }
             }
+        } catch (ArrayIndexOutOfBoundsException e) {
+
         }
         return result;
     }
