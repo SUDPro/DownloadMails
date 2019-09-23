@@ -39,7 +39,6 @@ public class ReadMail {
 
     @Scheduled(cron = "0 0/5 * * * ?")
     public void readMailFromEmails() {
-        System.out.println(emails.toString());
         for (String email :
                 emails) {
             downloadEmails(email);
@@ -55,6 +54,7 @@ public class ReadMail {
         Session session = Session.getDefaultInstance(properties);
 
         try {
+
             // connects to the message store
             Store store = session.getStore();
             store.connect(IMAP_Server, email, IMAP_AUTH_PWD);
@@ -87,7 +87,6 @@ public class ReadMail {
                     for (int i = 0; i < multiPart.getCount(); i++) {
                         MimeBodyPart part = (MimeBodyPart) multiPart.getBodyPart(i);
                         if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
-                            System.out.println("Decoding " + decodeString(part.getFileName()));
                             String path = saveDirectory + mesUID + "/" + decodeString(part.getFileName());
                             File f = new File(path);
                             f.getParentFile().mkdirs();
