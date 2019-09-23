@@ -1,6 +1,7 @@
 package ru.tts.reader;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -22,29 +23,28 @@ public class ReadMail {
     private static final String IMAP_AUTH_EMAIL2 = "";
     private static final String IMAP_AUTH_EMAIL1 = "";
     private static final String IMAP_AUTH_EMAIL = "";
-    private static final String IMAP_AUTH_EMAIL4 = "";
+    private static final String IMAP_AUTH_EMAIL3 = "";
     private static final String IMAP_AUTH_PWD = "";
     private static final String IMAP_Server = "";
     private static final String IMAP_Port = "993";
-    private static final String saveDirectory = "C:/Mails/";
 
+    @Value("${save.directory}")
+    private String saveDirectory;
     List<String> emails = new ArrayList<String>(Arrays.asList(
-            IMAP_AUTH_EMAIL, IMAP_AUTH_EMAIL1, IMAP_AUTH_EMAIL2, IMAP_AUTH_EMAIL4));
+            IMAP_AUTH_EMAIL, IMAP_AUTH_EMAIL1, IMAP_AUTH_EMAIL2, IMAP_AUTH_EMAIL3));
 
     @Autowired
     MailRepository repository;
 
     @Scheduled(cron = "0 0/1 * * * ?")
     public void readMailFromEmails() {
-
         for (String email :
                 emails) {
-            downloadEmails();
+            downloadEmails(email);
         }
-
     }
 
-    public void downloadEmails() {
+    public void downloadEmails(String email) {
         Properties properties = new Properties();
         properties.put("mail.debug", "false");
         properties.put("mail.store.protocol", "imaps");
@@ -55,7 +55,7 @@ public class ReadMail {
         try {
             // connects to the message store
             Store store = session.getStore();
-            store.connect(IMAP_Server, IMAP_AUTH_EMAIL, IMAP_AUTH_PWD);
+            store.connect(IMAP_Server, email, IMAP_AUTH_PWD);
 
             // opens the inbox folder
             Folder folderInbox = store.getFolder("INBOX");
@@ -66,7 +66,6 @@ public class ReadMail {
             for (Message message :
                     arrayMessages) {
                 String from = ((message.getFrom())[0]).toString();
-                List<String> attachmentNames = new ArrayList<>();
                 String subject = message.getSubject();
                 String toList = parseAddresses(message.getRecipients(Message.RecipientType.TO));
                 Date sentDate = message.getSentDate();
@@ -86,12 +85,8 @@ public class ReadMail {
                     for (int i = 0; i < multiPart.getCount(); i++) {
                         MimeBodyPart part = (MimeBodyPart) multiPart.getBodyPart(i);
                         if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
-//                            =?koi8-r?B?8MnT2M3PIMTM0SD09PMuUERG?=
-//                            =?utf-8?B?0KjQsNCx0LvQvtC90Ysg0L/QuNGB0LXQvCDQnNCaLnhsc3g=?=
-//                            8MnT2M3PIMTM0SD09PMuUERG
+                            //TODO save files
                             System.out.println("Decoding " + decodeString(part.getFileName()));
-
-
                         }
                     }
                 }
@@ -104,14 +99,6 @@ public class ReadMail {
                         .messageContent(messageContent)
                         .contentType(contentType)
                         .build());
-//                System.out.println("\t From: " + from);
-//                System.out.println("\t Content-Type: " + contentType);
-//                System.out.println("\t To: " + toList);
-//                System.out.println("\t Subject: " + subject);
-//                System.out.println("\t Sent Date: " + sentDate);
-//                System.out.println("\t Message: " + messageContent);
-//                System.out.println("\t Attachment" + attachmentNames.toArray().toString());
-
             }
             // disconnect
             folderInbox.close(false);
@@ -130,21 +117,18 @@ public class ReadMail {
     }
 
     private String getTextFromMessage(Message message) throws IOException, MessagingException {
-        String result = "";
+        String messageText = "";
         if (message.isMimeType("text/plain")) {
-            result = message.getContent().toString();
+            messageText = message.getContent().toString();
         } else if (message.isMimeType("multipart/*")) {
             MimeMultipart mimeMultipart = (MimeMultipart) message.getContent();
-            result = getTextFromMimeMultipart(mimeMultipart);
+            messageText = getTextFromMimeMultipart(mimeMultipart);
         }
-        return result;
+        return messageText;
     }
 
     public static String decodeString(String encodedString) throws UnsupportedEncodingException {
         String result = "";
-        //        =?utf-8?B?0L/RgNC40LrQsNC3INC00YHQvyA2MDQg0LogMjgxMjIwMTcg0L/RgNC40Lsg?= =?utf-8?Q?2.pdf?=
-        //         =?utf-8?B?0L/RgNC40LrQsNC3INC00YHQvyAwMDQg0L/RgCAyNTAxMjAxOCDQvtCxINGD?= =?utf-8?B?0YHRgtCw0L3QvtCy0LvQtdC90LjQuCDQu9C40LzQuNGC0LAg0LLRgNC10Lw=?= =?utf-8?B?0LXQvdC4INC90LDRhdC+0LbQtNC10L3QuNGPINCw0LLRgtC+0LzQvtCx0Lg=?= =?utf-8?B?0LvRjyDRgdC+0YLRgNGD0LTQvdC40LrQsCDQvdCwINC/0LDRgNC60L7QstC6?= =?utf-8?B?0LUg0JDQpiDQuCDQvNC10YAg0L3QsNC60LDQt9Cw0L3QuNGPINC30LAg0LU=?= =?utf-8?B?0LPQviDQvdCw0YDRg9GI0LXQvdC40LUucGRm?=
-        //         =?koi8-r?B?8MnT2M3PIMTM0SD09PMuUERG?=
         String[] strings = encodedString.split("\\?");
         String type = strings[1];
         for (int i = 0; i < strings.length; i++) {
@@ -159,14 +143,11 @@ public class ReadMail {
 
     private String getTextFromMimeMultipart(
             MimeMultipart mimeMultipart) throws IOException, MessagingException {
-
         int count = mimeMultipart.getCount();
         if (count == 0)
             throw new MessagingException("Multipart with no body parts not supported.");
         boolean multipartAlt = new ContentType(mimeMultipart.getContentType()).match("multipart");
         if (multipartAlt)
-            // alternatives appear in an order of increasing
-            // faithfulness to the original content. Customize as req'd.
             return getTextFromBodyPart(mimeMultipart.getBodyPart(count - 1));
         String result = "";
         for (int i = 0; i < count; i++) {
@@ -178,7 +159,6 @@ public class ReadMail {
 
     private String getTextFromBodyPart(
             BodyPart bodyPart) throws IOException, MessagingException {
-
         String result = "";
         if (bodyPart.isMimeType("text/plain")) {
             result = (String) bodyPart.getContent();
@@ -193,7 +173,6 @@ public class ReadMail {
 
     private String parseAddresses(Address[] address) {
         String listAddress = "";
-
         if (address != null) {
             for (int i = 0; i < address.length; i++) {
                 listAddress += address[i].toString() + ", ";
@@ -202,7 +181,6 @@ public class ReadMail {
         if (listAddress.length() > 1) {
             listAddress = listAddress.substring(0, listAddress.length() - 2);
         }
-
         return listAddress;
     }
 }
